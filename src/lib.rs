@@ -232,7 +232,7 @@ impls!(self {
     unreachable!()  => Infallible;
     false           => ();
     *self           => bool;
-    true            => char;
+    true            => char, fn() -> R => [R];
     *self != 0      => u8, u16, u32, u64, u128, usize,
                        i8, i16, i32, i64, i128, isize;
     *self != 0.0 && !self.is_nan() => f32, f64;
@@ -262,9 +262,9 @@ impls!(self {
         *const T    => [T: ?Sized],
         *mut T      => [T: ?Sized],
         ;
-    self.is_some()  => Option<T> => [T];
+    self.is_some()  => Option<T>    => [T];
     self.is_ok()    => Result<T, E> => [T, E];
-    self.is_ready() => Poll<T> => [T];
+    self.is_ready() => Poll<T>      => [T];
 });
 
 macro_rules! impl_tuples {
@@ -287,11 +287,6 @@ macro_rules! impl_tuples {
 }
 
 impl_tuples!(T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16);
-impl<R> WeakTrue for fn() -> R {
-    fn weak_true(&self) -> bool {
-        true
-    }
-}
 
 #[cfg(test)]
 mod tests {
