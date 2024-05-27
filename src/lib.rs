@@ -11,7 +11,7 @@ use std::{
         LinkedList,
         VecDeque,
     },
-    convert::Infallible,
+    convert::{Infallible, identity},
     rc::Rc,
     sync::Arc,
     task::Poll,
@@ -30,7 +30,7 @@ use std::{
 /// | Option                        | self.is_some          |
 /// | Result                        | self.is_ok            |
 /// | Poll                          | self.is_ready         |
-/// | str / slice                   | !self.is_empty        |
+/// | str / slice / array           | !self.is_empty        |
 /// | collections                   | !self.is_empty        |
 /// | unit                          | false                 |
 /// | bool                          | self                  |
@@ -83,6 +83,12 @@ pub trait WeakBoolIterExtend: Sized {
 
     /// like `iter.map(WeakTrue::weak_false)`
     fn weak_false(self) -> WeakBoolIter<false, Self>;
+
+    /// like `iter.weak_true().all(identity)`
+    fn weak_all(self) -> bool;
+
+    /// like `iter.weak_true().any(identity)`
+    fn weak_any(self) -> bool;
 }
 impl<I> WeakBoolIterExtend for I
 where I: Iterator,
@@ -94,6 +100,14 @@ where I: Iterator,
 
     fn weak_false(self) -> WeakBoolIter<false, Self> {
         WeakBoolIter(self)
+    }
+
+    fn weak_all(self) -> bool {
+        self.weak_true().all(identity)
+    }
+
+    fn weak_any(self) -> bool {
+        self.weak_true().any(identity)
     }
 }
 
@@ -330,6 +344,7 @@ mod tests {
             Some(1),
             Ok::<_, ()>(1),
         ];
+        assert!(datas.iter().weak_all());
         for data in datas.iter().weak_true() {
             assert!(data.weak_true(),   "{data:?}");
             assert!(!data.weak_false(), "{data:?}");
@@ -370,6 +385,7 @@ mod tests {
             Err::<(), _>(1),
             (),
         ];
+        assert!(!datas.iter().weak_any());
         for data in datas.iter().weak_true() {
             assert!(data.weak_false(),  "{data:?}");
             assert!(!data.weak_true(),  "{data:?}");
