@@ -14,7 +14,7 @@ in weakly typed languages
 | collections                   | !self.is\_empty       |
 | unit                          | false                 |
 | bool                          | self                  |
-| fn / tuple                    | true                  |
+| fn / tuple / char             | true                  |
 
 # Examples
 ```rust

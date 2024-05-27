@@ -34,7 +34,7 @@ use std::{
 /// | collections                   | !self.is_empty        |
 /// | unit                          | false                 |
 /// | bool                          | self                  |
-/// | fn / tuple                    | true                  |
+/// | fn / tuple / char             | true                  |
 pub trait WeakTrue {
     /// Similar to the automatic implicit conversion to boolean values
     /// in weakly typed languages
