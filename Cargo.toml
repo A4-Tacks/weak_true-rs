@@ -1,0 +1,14 @@
+[package]
+name = "weak_true"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
+description = "Similar to the automatic implicit conversion to boolean values in weakly typed languages"
+keywords = ["weak-typed"]
+license = "MIT"
+repository = "https://github.com/A4-Tacks/weak_true-rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
