@@ -11,11 +11,22 @@ use std::{
         LinkedList,
         VecDeque,
     },
-    convert::{Infallible, identity},
+    convert::{
+        identity,
+        Infallible
+    },
+    ffi::{
+        CStr,
+        CString,
+        OsStr,
+        OsString,
+    },
+    iter::FusedIterator,
+    ops::Deref,
+    pin::Pin,
     rc::Rc,
     sync::Arc,
     task::Poll,
-    iter::FusedIterator,
 };
 
 /// Similar to the automatic implicit conversion to boolean values
@@ -206,20 +217,20 @@ macro_rules! impls {
     ($self:ident {
         $(
             $cond:expr =>
-            $($ty:ty $(=> [$($g:tt)*])?),+ $(,)?;
+            $($ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?),+ $(,)?;
         )*
     }) => {
         $(
-            impls!(@impl($self) $cond => $($ty $(=> [$($g)*])?),+);
+            impls!(@impl($self) $cond => $($ty $(=> [$($g)*] $(($($w)*))?)?),+);
         )*
     };
     (
         @impl($self:ident)
         $cond:expr =>
-        $($ty:ty $(=> [$($g:tt)*])?),+
+        $($ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?),+
     ) => {
         $(
-            impl$(<$($g)*>)? WeakTrue for $ty {
+            impl$(<$($g)*>)? WeakTrue for $ty $($(where $($w)*)?)? {
                 fn weak_true(&$self) -> bool {
                     $cond
                 }
@@ -238,7 +249,11 @@ impls!(self {
     *self != 0.0 && !self.is_nan() => f32, f64;
     !self.is_empty() =>
         str,
+        CStr,
+        OsStr,
         String,
+        CString,
+        OsString,
         [T]                 => [T],
         [T; N]              => [T, const N: usize],
         Vec<T>              => [T],
@@ -250,13 +265,14 @@ impls!(self {
         BTreeSet<T>         => [T],
         BinaryHeap<K>       => [K],
         ;
-    <T as WeakTrue>::weak_true(&**self) =>
+    (&**self).weak_true() =>
         &'_ T       => [T: WeakTrue + ?Sized],
         &'_ mut T   => [T: WeakTrue + ?Sized],
         Box<T>      => [T: WeakTrue + ?Sized],
         Rc<T>       => [T: WeakTrue + ?Sized],
         Arc<T>      => [T: WeakTrue + ?Sized],
         Cow<'_, T>  => [T: WeakTrue + ?Sized + ToOwned],
+        Pin<T>      => [T: Deref](T::Target: WeakTrue),
         ;
     !self.is_null() =>
         *const T    => [T: ?Sized],
