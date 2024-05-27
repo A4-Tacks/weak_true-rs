@@ -10,8 +10,8 @@ in weakly typed languages
 | Option                        | self.is\_some         |
 | Result                        | self.is\_ok           |
 | Poll                          | self.is\_ready        |
-| str / slice                   | self.is\_empty        |
-| collections                   | self.is\_empty        |
+| str / slice                   | !self.is\_empty       |
+| collections                   | !self.is\_empty       |
 | unit                          | false                 |
 | bool                          | self                  |
 | fn / tuple                    | true                  |

@@ -30,8 +30,8 @@ use std::{
 /// | Option                        | self.is_some          |
 /// | Result                        | self.is_ok            |
 /// | Poll                          | self.is_ready         |
-/// | str / slice                   | self.is_empty         |
-/// | collections                   | self.is_empty         |
+/// | str / slice                   | !self.is_empty        |
+/// | collections                   | !self.is_empty        |
 /// | unit                          | false                 |
 /// | bool                          | self                  |
 /// | fn / tuple                    | true                  |
