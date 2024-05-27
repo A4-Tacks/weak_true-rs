@@ -15,6 +15,7 @@ use std::{
     rc::Rc,
     sync::Arc,
     task::Poll,
+    iter::FusedIterator,
 };
 
 /// Similar to the automatic implicit conversion to boolean values
@@ -69,13 +70,99 @@ pub trait WeakTrue {
     }
 }
 
+fn weak_bool<const B: bool>(value: impl WeakTrue) -> bool {
+    if B {
+        value.weak_true()
+    } else {
+        value.weak_false()
+    }
+}
+pub trait WeakBoolIterExtend: Sized {
+    /// like `iter.map(WeakTrue::weak_true)`
+    fn weak_true(self) -> WeakBoolIter<true, Self>;
+
+    /// like `iter.map(WeakTrue::weak_false)`
+    fn weak_false(self) -> WeakBoolIter<false, Self>;
+}
+impl<I> WeakBoolIterExtend for I
+where I: Iterator,
+      I::Item: WeakTrue,
+{
+    fn weak_true(self) -> WeakBoolIter<true, Self> {
+        WeakBoolIter(self)
+    }
+
+    fn weak_false(self) -> WeakBoolIter<false, Self> {
+        WeakBoolIter(self)
+    }
+}
+
+/// Created from [`weak_true`] and [`weak_false`] method
+///
+/// [`weak_true`]: crate::WeakBoolIterExtend::weak_true
+/// [`weak_false`]: crate::WeakBoolIterExtend::weak_false
+pub struct WeakBoolIter<const B: bool, I>(I);
+
+impl<const B: bool, I> ExactSizeIterator for WeakBoolIter<B, I>
+where I::Item: WeakTrue,
+      I: ExactSizeIterator,
+{ }
+impl<const B: bool, I> FusedIterator for WeakBoolIter<B, I>
+where I::Item: WeakTrue,
+      I: FusedIterator,
+{ }
+impl<const B: bool, I> Iterator for WeakBoolIter<B, I>
+where I: Iterator,
+      I::Item: WeakTrue,
+{
+    type Item = bool;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(weak_bool::<B>)
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth(n).map(weak_bool::<B>)
+    }
+
+    fn fold<B1, F>(self, init: B1, mut f: F) -> B1
+    where Self: Sized,
+          F: FnMut(B1, Self::Item) -> B1,
+    {
+        self.0.fold(init, |acc, elem| f(acc, weak_bool::<B>(elem)))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+impl<const B: bool, I> DoubleEndedIterator for WeakBoolIter<B, I>
+where I: DoubleEndedIterator,
+      I::Item: WeakTrue,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(weak_bool::<B>)
+    }
+
+    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
+        self.0.nth_back(n).map(weak_bool::<B>)
+    }
+
+    fn rfold<B1, F>(self, init: B1, mut f: F) -> B1
+    where
+        Self: Sized,
+        F: FnMut(B1, Self::Item) -> B1,
+    {
+        self.0.rfold(init, |acc, elem| f(acc, weak_bool::<B>(elem)))
+    }
+}
+
 #[doc = "\
 if but use [`weak_true`] result value
 
 # Examples
 ```
 # use weak_true::wif;
-
 let r = wif!(\"\" => {
     1
 } else {
@@ -196,6 +283,8 @@ impl<R> WeakTrue for fn() -> R {
 mod tests {
     use core::fmt::Debug;
     use std::{ptr::{null, null_mut}, collections::HashSet};
+    use crate::WeakBoolIterExtend;
+
     use super::WeakTrue;
 
     trait TestTrait: WeakTrue + Debug { }
@@ -241,6 +330,14 @@ mod tests {
             Some(1),
             Ok::<_, ()>(1),
         ];
+        for data in datas.iter().weak_true() {
+            assert!(data.weak_true(),   "{data:?}");
+            assert!(!data.weak_false(), "{data:?}");
+        }
+        for data in datas.iter().weak_false() {
+            assert!(! data.weak_true(),   "{data:?}");
+            assert!(! !data.weak_false(), "{data:?}");
+        }
         for data in datas {
             assert!(data.weak_true(),   "{data:?}");
             assert!(!data.weak_false(), "{data:?}");
@@ -273,6 +370,14 @@ mod tests {
             Err::<(), _>(1),
             (),
         ];
+        for data in datas.iter().weak_true() {
+            assert!(data.weak_false(),  "{data:?}");
+            assert!(!data.weak_true(),  "{data:?}");
+        }
+        for data in datas.iter().weak_false() {
+            assert!(! data.weak_false(),  "{data:?}");
+            assert!(! !data.weak_true(),  "{data:?}");
+        }
         for data in datas {
             assert!(data.weak_false(),  "{data:?}");
             assert!(!data.weak_true(),  "{data:?}");
