@@ -1,7 +1,11 @@
 #![doc = include_str!("../README.md")]
 
 use std::{
-    borrow::Cow,
+    borrow::{
+        Cow,
+        Borrow,
+        BorrowMut,
+    },
     collections::{
         BTreeMap,
         BTreeSet,
@@ -20,6 +24,11 @@ use std::{
         CString,
         OsStr,
         OsString,
+    },
+    fmt::Debug,
+    hash::{
+        Hash,
+        Hasher,
     },
     iter::FusedIterator,
     ops::Deref,
@@ -126,18 +135,88 @@ where I: Iterator,
 ///
 /// [`weak_true`]: crate::WeakBoolIterExtend::weak_true
 /// [`weak_false`]: crate::WeakBoolIterExtend::weak_false
-pub struct WeakBoolIter<const B: bool, I>(I);
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct WeakBoolIter<const B: bool, I: ?Sized>(I);
 
+impl<const B: bool, I> WeakBoolIter<B, I> {
+    /// Consumes [`WeakBoolIter`] into wrapped `I`
+    ///
+    /// [`WeakBoolIter`]: crate::WeakBoolIter
+    ///
+    /// # Examples
+    /// ```
+    /// # use weak_true::{WeakTrue, WeakBoolIter, WeakBoolIterExtend};
+    /// # use std::slice;
+    /// type I<'a> = slice::Iter<'a, i32>;
+    ///
+    /// let i: I<'_> = [0, 2][..].iter();
+    /// let wrapped: WeakBoolIter<true, I<'_>> = i.weak_true();
+    /// let _i: I<'_> = wrapped.into_inner();
+    /// ```
+    pub fn into_inner(self) -> I {
+        self.0
+    }
+}
+impl<const B: bool, I> From<I> for WeakBoolIter<B, I> {
+    fn from(value: I) -> Self {
+        Self(value)
+    }
+}
+impl<const B: bool, I: Hash + ?Sized> Hash for WeakBoolIter<B, I> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+impl<const B: bool, I: ?Sized> Borrow<I> for WeakBoolIter<B, I> {
+    fn borrow(&self) -> &I {
+        &self.0
+    }
+}
+impl<const B: bool, I: ?Sized> BorrowMut<I> for WeakBoolIter<B, I> {
+    fn borrow_mut(&mut self) -> &mut I {
+        &mut self.0
+    }
+}
+impl<const B: bool, I, U> AsRef<U> for WeakBoolIter<B, I>
+where I: AsRef<U> + ?Sized,
+{
+    fn as_ref(&self) -> &U {
+        self.0.as_ref()
+    }
+}
+impl<const B: bool, I, U> AsMut<U> for WeakBoolIter<B, I>
+where I: AsMut<U> + ?Sized,
+{
+    fn as_mut(&mut self) -> &mut U {
+        self.0.as_mut()
+    }
+}
+impl<const B: bool, I> Debug for WeakBoolIter<B, I>
+where I: Debug + ?Sized,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f
+            .debug_tuple(if B {
+                "WeakBoolIter<true>"
+            } else {
+                "WeakBoolIter<false>"
+            })
+            .field(&&self.0)
+            .finish()
+    }
+}
 impl<const B: bool, I> ExactSizeIterator for WeakBoolIter<B, I>
 where I::Item: WeakTrue,
-      I: ExactSizeIterator,
-{ }
+      I: ExactSizeIterator + ?Sized,
+{
+}
 impl<const B: bool, I> FusedIterator for WeakBoolIter<B, I>
 where I::Item: WeakTrue,
-      I: FusedIterator,
-{ }
+      I: FusedIterator + ?Sized,
+{
+}
 impl<const B: bool, I> Iterator for WeakBoolIter<B, I>
-where I: Iterator,
+where I: Iterator + ?Sized,
       I::Item: WeakTrue,
 {
     type Item = bool;
@@ -150,11 +229,13 @@ where I: Iterator,
         self.0.nth(n).map(weak_bool::<B>)
     }
 
-    fn fold<B1, F>(self, init: B1, mut f: F) -> B1
+    fn fold<B1, F>(mut self, init: B1, mut f: F) -> B1
     where Self: Sized,
           F: FnMut(B1, Self::Item) -> B1,
     {
-        self.0.fold(init, |acc, elem| f(acc, weak_bool::<B>(elem)))
+        (&mut self.0)
+            .fold(init, |acc, elem|
+                f(acc, weak_bool::<B>(elem)))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -162,7 +243,7 @@ where I: Iterator,
     }
 }
 impl<const B: bool, I> DoubleEndedIterator for WeakBoolIter<B, I>
-where I: DoubleEndedIterator,
+where I: DoubleEndedIterator + ?Sized,
       I::Item: WeakTrue,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -173,12 +254,13 @@ where I: DoubleEndedIterator,
         self.0.nth_back(n).map(weak_bool::<B>)
     }
 
-    fn rfold<B1, F>(self, init: B1, mut f: F) -> B1
-    where
-        Self: Sized,
-        F: FnMut(B1, Self::Item) -> B1,
+    fn rfold<B1, F>(mut self, init: B1, mut f: F) -> B1
+    where Self: Sized,
+          F: FnMut(B1, Self::Item) -> B1,
     {
-        self.0.rfold(init, |acc, elem| f(acc, weak_bool::<B>(elem)))
+        (&mut self.0)
+            .rfold(init, |acc, elem|
+                f(acc, weak_bool::<B>(elem)))
     }
 }
 
@@ -265,7 +347,7 @@ impls!(self {
         BTreeSet<T>         => [T],
         BinaryHeap<K>       => [K],
         ;
-    (&**self).weak_true() =>
+    (**self).weak_true() =>
         &'_ T       => [T: WeakTrue + ?Sized],
         &'_ mut T   => [T: WeakTrue + ?Sized],
         Box<T>      => [T: WeakTrue + ?Sized],
@@ -394,6 +476,7 @@ mod tests {
             None::<i32>,
             Err::<(), _>(0),
             Err::<(), _>(1),
+            "",
             (),
         ];
         assert!(!datas.iter().weak_any());
