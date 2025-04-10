@@ -107,6 +107,38 @@ pub trait WeakTrue {
     fn weak_false(&self) -> bool {
         !self.weak_true()
     }
+
+    /// Run [`bool::then`] on [`WeakTrue::weak_true`]
+    ///
+    /// # Examples
+    /// ```
+    /// # use weak_true::WeakTrue;
+    ///
+    /// assert_eq!(1.weak_then(|| "a"), Some("a"));
+    /// assert_eq!(0.weak_then(|| "a"), None);
+    /// ```
+    fn weak_then<F, R>(&self, f: F) -> Option<R>
+    where F: FnOnce() -> R,
+          Self: Sized,
+    {
+        self.weak_true().then(f)
+    }
+
+    /// Run [`bool::then`] on [`WeakTrue::weak_false`]
+    ///
+    /// # Examples
+    /// ```
+    /// # use weak_true::WeakTrue;
+    ///
+    /// assert_eq!(1.weak_else(|| "a"), None);
+    /// assert_eq!(0.weak_else(|| "a"), Some("a"));
+    /// ```
+    fn weak_else<F, R>(&self, f: F) -> Option<R>
+    where F: FnOnce() -> R,
+          Self: Sized,
+    {
+        self.weak_false().then(f)
+    }
 }
 
 fn weak_bool<const B: bool>(value: impl WeakTrue) -> bool {
