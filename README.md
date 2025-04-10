@@ -32,4 +32,7 @@ assert!(0.0.weak_false());
 assert!(0.weak_false());
 assert!("".weak_false());
 assert!([0; 0].weak_false());
+
+assert_eq!(1.weak_then(|| "ok"), Some("ok"));
+assert_eq!(0.weak_then(|| "ok"), None);
 ```
