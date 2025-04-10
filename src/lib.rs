@@ -1,30 +1,21 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![doc = include_str!("../README.md")]
 
-use std::{
+#[cfg(feature = "std")]
+use ::std;
+#[cfg(not(feature = "std"))]
+extern crate alloc as std;
+
+use core::{
     borrow::{
-        Cow,
         Borrow,
         BorrowMut,
-    },
-    collections::{
-        BTreeMap,
-        BTreeSet,
-        BinaryHeap,
-        HashMap,
-        HashSet,
-        LinkedList,
-        VecDeque,
     },
     convert::{
         identity,
         Infallible
     },
-    ffi::{
-        CStr,
-        CString,
-        OsStr,
-        OsString,
-    },
+    ffi::CStr,
     fmt::Debug,
     hash::{
         Hash,
@@ -33,9 +24,37 @@ use std::{
     iter::FusedIterator,
     ops::Deref,
     pin::Pin,
-    rc::Rc,
-    sync::Arc,
     task::Poll,
+};
+use std::{
+    borrow::{
+        Cow,
+        ToOwned,
+    },
+    boxed::Box,
+    collections::{
+        BTreeMap,
+        BTreeSet,
+        BinaryHeap,
+        LinkedList,
+        VecDeque,
+    },
+    ffi::CString,
+    rc::Rc,
+    string::String,
+    sync::Arc,
+    vec::Vec,
+};
+#[cfg(feature = "std")]
+use std::{
+    collections::{
+        HashMap,
+        HashSet,
+    },
+    ffi::{
+        OsStr,
+        OsString,
+    }
 };
 
 /// Similar to the automatic implicit conversion to boolean values
@@ -299,19 +318,29 @@ macro_rules! impls {
     ($self:ident {
         $(
             $cond:expr =>
-            $($ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?),+ $(,)?;
+            $(
+                $(#[$meta:meta])*
+                $ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?
+            ),+ $(,)?;
         )*
     }) => {
         $(
-            impls!(@impl($self) $cond => $($ty $(=> [$($g)*] $(($($w)*))?)?),+);
+            impls!(@impl($self) $cond => $(
+                    $(#[$meta])*
+                    $ty $(=> [$($g)*] $(($($w)*))?)?
+            ),+);
         )*
     };
     (
         @impl($self:ident)
         $cond:expr =>
-        $($ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?),+
+        $(
+            $(#[$meta:meta])*
+            $ty:ty $(=> [$($g:tt)*] $(($($w:tt)*))?)?
+        ),+
     ) => {
         $(
+            $(#[$meta])*
             impl$(<$($g)*>)? WeakTrue for $ty $($(where $($w)*)?)? {
                 fn weak_true(&$self) -> bool {
                     $cond
@@ -332,16 +361,20 @@ impls!(self {
     !self.is_empty() =>
         str,
         CStr,
+        #[cfg(feature = "std")]
         OsStr,
         String,
         CString,
+        #[cfg(feature = "std")]
         OsString,
         [T]                 => [T],
         [T; N]              => [T, const N: usize],
         Vec<T>              => [T],
         VecDeque<T>         => [T],
         LinkedList<T>       => [T],
+        #[cfg(feature = "std")]
         HashMap<K, V, H>    => [K, V, H],
+        #[cfg(feature = "std")]
         HashSet<T, H>       => [T, H],
         BTreeMap<K, V>      => [K, V],
         BTreeSet<T>         => [T],
@@ -389,10 +422,11 @@ impl_tuples!(T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T11 T12 T13 T14 T15 T16);
 #[cfg(test)]
 mod tests {
     use core::fmt::Debug;
-    use std::{ptr::{null, null_mut}, collections::HashSet};
+    use core::ptr::{null, null_mut};
     use crate::WeakBoolIterExtend;
 
-    use super::WeakTrue;
+    use super::*;
+    use super::std::vec;
 
     trait TestTrait: WeakTrue + Debug { }
     impl<T: WeakTrue + Debug> TestTrait for T { }
@@ -472,7 +506,7 @@ mod tests {
             null_mut::<i32>(),
             vec![0; 0],
             Vec::<i32>::new(),
-            HashSet::<i32>::new(),
+            BTreeSet::<i32>::new(),
             None::<i32>,
             Err::<(), _>(0),
             Err::<(), _>(1),
