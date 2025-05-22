@@ -17,7 +17,7 @@ fn weak(expr: &mut Expr) {
     let local = replace(expr, Expr::PLACEHOLDER);
 
     *expr = parse_quote_spanned! { expr.span() =>
-        ::weak_true::WeakTrue::weak_true(&#local)
+        ::weak_true::WeakTrue::weak_true(&(#local))
     };
 }
 
