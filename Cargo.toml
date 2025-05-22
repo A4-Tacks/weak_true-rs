@@ -1,6 +1,6 @@
 [package]
 name = "weak_true"
-version = "0.1.7"
+version = "0.2.0"
 edition = "2021"
 
 authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
@@ -12,8 +12,13 @@ repository = "https://github.com/A4-Tacks/weak_true-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = ["weak_true-proc_macro"]
+
 [features]
-default = ["std"]
+default = ["std", "macros"]
 std = []
+macros = ["weak_true-proc_macro"]
 
 [dependencies]
+weak_true-proc_macro = { version = "0.1.0", path = "weak_true-proc_macro", optional = true }

@@ -1,0 +1,16 @@
+[package]
+name = "weak_true-proc_macro"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
+description = "proc-macro support"
+license = "MIT"
+repository = "https://github.com/A4-Tacks/weak_true-rs"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0.40"
+syn = { version = "2.0.101", features = ["full", "visit-mut"] }

@@ -57,6 +57,43 @@ use std::{
     }
 };
 
+/// Add [`WeakTrue::weak_true`] call in `if`, `while`
+///
+/// # Examples
+/// ```
+/// use weak_true::weak_true;
+///
+/// #[weak_true]
+/// fn main() {
+///     let mut a = vec![1, 2, 3];
+///     let mut b = vec![5, 4];
+///
+///     while a {
+///         b.push(a.pop().unwrap());
+///     }
+///
+///     assert_eq!(b, vec![5, 4, 3, 2, 1]);
+/// }
+/// ```
+///
+/// ```
+/// # use weak_true::weak_true;
+/// #[weak_true]
+/// fn main() {
+///     let mut a = vec![-1, 0, 1, 2];
+///     let mut b = vec![4, 3];
+///
+///     while a && a[a.len()-1] {
+///         b.push(a.pop().unwrap());
+///     }
+///
+///     assert_eq!(a, vec![-1, 0]);
+///     assert_eq!(b, vec![4, 3, 2, 1]);
+/// }
+/// ```
+#[cfg(feature = "macros")]
+pub use weak_true_proc_macro::weak_true;
+
 /// Similar to the automatic implicit conversion to boolean values
 /// in weakly typed languages
 ///

@@ -18,6 +18,23 @@ in weakly typed languages
 
 # Examples
 ```rust
+use weak_true::weak_true;
+
+#[weak_true]
+fn main() {
+    let mut a = vec![-1, 0, 1, 2];
+    let mut b = vec![4, 3];
+
+    while a && a[a.len()-1] {
+        b.push(a.pop().unwrap());
+    }
+
+    assert_eq!(a, vec![-1, 0]);
+    assert_eq!(b, vec![4, 3, 2, 1]);
+}
+```
+
+```rust
 use weak_true::WeakTrue;
 
 assert!("c".weak_true());
